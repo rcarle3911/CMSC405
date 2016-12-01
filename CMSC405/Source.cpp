@@ -28,25 +28,125 @@ using namespace std;
 // Window display size
 GLsizei winWidth = WIDTH, winHeight = HEIGHT;
 GLfloat plRot = 0.0f, pltx = 0.0f, plty = 0.0f, plsx = 1.0f, plsy = 1.0f,
-		sbtx = -150.0f, sbty = -150.0f, 
+		sbtx = -150.0f, sbty = -150.0f,
 		texttx = -90.0f, textty = 285.0f,
-		attx = 100.0f, atty = 0.0f, atsx = 3.0f, atsy = 3.0f;
+		atRot = 0.0f, attx = -400.0f, atty = 0.0f, atsx = 3.0f, atsy = 3.0f,
+		btx = 0.0f, bty = 0.0f, bts = 0.0f,
+		stRot = 0.0f;
 float plSize = 30.0f;
-int stCnt = 150;
+const int stCnt = 150;
+int sbDir = 1.0f, plRotDif = 1.0f, textDirX = 1.0f, textDirY = 1.0f;
+int strArr[stCnt][2] = {};
+
+void spinStars(void) {
+	Sleep(SLEEPMS);
+
+	stRot += 1.0f;
+
+	glutPostRedisplay();
+}
+
+void moveBug(void);
+
+void shoot(void) {
+	Sleep(SLEEPMS / 10);
+
+	if (bty > HEIGHT / 2) {
+		bts = 0.0f;
+		glutIdleFunc(moveBug);
+	}
+
+	bty += 1.0f;
+	glutPostRedisplay();
+}
 
 void moveBug(void) {
 	Sleep(SLEEPMS);
-
-	sbtx += 1.0f;
-	sbty += 1.0f;
-
-	if (sbtx > WIDTH / 2) {
-		sbtx = -WIDTH / 2;
+	if (sbtx > (WIDTH / 2 - 24)) {
+		sbDir = -1.0f;
 	}
 
-	if (sbty > HEIGHT / 2) {
-		sbty = -HEIGHT / 2;
+	if (sbtx < -(WIDTH / 2)) {
+		sbDir = 1.0f;
 	}
+
+	if(rand() % 50 == 0) {
+		btx = sbtx + 12;
+		bty = sbty + 54;
+		bts = 1.0f;
+		glutIdleFunc(shoot);
+	}
+	sbtx += sbDir;
+
+	glutPostRedisplay();
+}
+
+void wobblePlanet(void) {
+	Sleep(SLEEPMS);
+	
+	if (plRot > 15) {
+		plRotDif = -1.0f;
+	}
+
+	if (plRot < -15) {
+		plRotDif = 1.0f;
+	}
+
+	plRot += plRotDif;
+
+	glutPostRedisplay();
+}
+
+void shootAsteroid(void);
+
+void movePlanet(void) {
+	Sleep(SLEEPMS);
+
+	pltx += 1.0f;
+	plRot -= 0.1f;
+
+	if (pltx >= 370) {
+		pltx = 0.0f;
+		plRot = 0.0f;
+		atRot = 0.0f;
+		attx = -400.0f;
+		glutIdleFunc(shootAsteroid);
+	}
+
+	glutPostRedisplay();
+}
+
+void shootAsteroid(void) {
+	Sleep(SLEEPMS);
+	
+	attx += 1.0f;
+	atRot += 0.5f;
+
+	if (attx >= -30) {
+		glutIdleFunc(movePlanet);
+	}
+
+	glutPostRedisplay();
+}
+
+void bounceText(void) {
+	Sleep(SLEEPMS);
+
+	if (texttx > WIDTH / 2 - 160) {
+		textDirX = -1.0f;
+	} else if (texttx < -(WIDTH / 2)) {
+		textDirX = 1.0f;
+	}
+
+	if (textty > HEIGHT / 2 - 13) {
+		textDirY = -1.0f;
+	}
+	else if (textty < -(HEIGHT / 2)) {
+		textDirY = 1.0f;
+	}
+
+	texttx += textDirX;
+	textty += textDirY;
 
 	glutPostRedisplay();
 }
@@ -54,6 +154,12 @@ void moveBug(void) {
 // Initialize method
 void init(void)
 {
+	//Generate star positions
+	strArr[stCnt][2] = {};
+	for (int i = 0; i < stCnt; i++) {
+		strArr[i][0] = rand() % winWidth - winWidth / 2;
+		strArr[i][1] = rand() % winWidth - winWidth / 2;
+	}
 	// Get and display your OpenGL version
 	const GLubyte *Vstr;
 	Vstr = glGetString(GL_VERSION);
@@ -78,11 +184,15 @@ void mouseFcn(GLint button, GLint action, GLint x, GLint y)
 	switch (button) {
 	case GLUT_LEFT_BUTTON:           //  Start the animation.
 		if (action == GLUT_DOWN)
-			glutIdleFunc(moveBug);
+			glutIdleFunc(shootAsteroid);
+		break;
+	case GLUT_MIDDLE_BUTTON:
+		if (action == GLUT_DOWN)
+			glutIdleFunc(spinStars);
 		break;
 	case GLUT_RIGHT_BUTTON:            //  Stop the animation.
 		if (action == GLUT_DOWN)
-			glutIdleFunc(NULL);
+			glutIdleFunc(bounceText);
 		break;
 	default:
 		break;
@@ -93,6 +203,9 @@ void mouseFcn(GLint button, GLint action, GLint x, GLint y)
 void keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
+	case '0':	/*  0 key starts planet wobble */
+		glutIdleFunc(wobblePlanet);
+		break;
 	case '1':   /*  1 key starts the animation  */
 		glutIdleFunc(moveBug);
 		break;
@@ -132,11 +245,13 @@ void displayFcn()
 	// Your graphics code here
 	int width = glutGet(GLUT_WINDOW_WIDTH);
 	int height = glutGet(GLUT_WINDOW_HEIGHT);
+	glPushMatrix();
+	glRotatef(stRot, 0.0f, 0.0f, 1.0f);
 	//Draw the star background	
 	for (int i = 0; i < stCnt; i++) {
-		drawStar((rand() % width) - (width / 2), (rand() % height) - (height / 2));
+		drawStar(strArr[i][0], strArr[i][1]);
 	}
-
+	glPopMatrix();
 	//Draw space bug
 	glColor3f(1.0, 0.0, 0.0);
 	glPushMatrix();
@@ -251,6 +366,7 @@ void displayFcn()
 	glPushMatrix();
 	glTranslatef(attx, atty, 0.0f);
 	glScalef(atsx, atsy, 1.0f);
+	glRotatef(atRot, 0, 0, 1);
 	regHex = glGenLists(1);
 	glNewList(regHex, GL_COMPILE);
 	glBegin(GL_POLYGON);
@@ -283,6 +399,14 @@ void displayFcn()
 	glCallList(regHex);
 	glPopMatrix();
 
+	// Bullet
+	glColor3f(0.0, 1.0, 0.0);
+	glPushMatrix();
+	glTranslatef(btx, bty, 0.0f);
+	glScalef(bts, bts, 1.0f);
+	glRecti(-1, 2, 1, -2);
+	glPopMatrix();
+
 	// Execute OpenGL functions
 	glFlush();
 }
@@ -294,164 +418,6 @@ void winReshapeFcn(GLint newWidth, GLint newHeight)
 	glLoadIdentity();
 	gluOrtho2D(-(GLdouble)newWidth / 2, (GLdouble)newWidth / 2, -(GLdouble)newHeight / 2, (GLdouble)newHeight / 2);
 	glClear(GL_COLOR_BUFFER_BIT);
-}
-
-// Refreshes the display and passes itself to be called 150ms later.
-void refresh(int x) {
-	if (x >= 1) {
-		cout << "Enter star count: ";
-		cin >> stCnt;
-		while (true)
-		{
-			cout << "Enter planet scale on x-axis: ";
-			cin >> plsx;
-			if (plsx <= 10.0) {
-				break;
-			}
-			else {
-				cout << "Enter number less than 10.0. ";
-			}
-		}
-
-		while (true) {
-			cout << "Enter planet scale on y-axis: ";
-			cin >> plsy;
-			if (plsy <= 6.6) {
-				break;
-			}
-			else {
-				cout << "Enter number less than 6.6. ";
-			}
-		}
-		cout << "Enter planet rotation in degrees: ";
-		cin >> plRot;
-		while (true)
-		{
-			cout << "Enter planet x-axis translation: ";
-			cin >> pltx;
-			float posX = plsx * plSize + pltx;
-			float negX = -(plsx * plSize) + pltx;
-			if (posX <= 300 && negX >= -300) {
-				break;
-			}
-			else {
-				float x = plsx * plSize - 300;
-				cout << "Please enter a value between " << -x << " and " << x << ". ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter planet y-axis translation: ";
-			cin >> plty;
-			float posY = plsy * plSize + plty;
-			float negY = -(plsy * plSize) + plty;
-			if (posY <= 200 && negY >= -200) {
-				break;
-			}
-			else {
-				float y = plsy * plSize - 200;
-				cout << "Please enter a value between " << -y << " and " << y << ". ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter spacebug x-axis translation: ";
-			cin >> sbtx;
-			if (sbtx < 375 && sbtx > -400) {
-				break;
-			}
-			else {
-				cout << "Please enter a value between -400 and 375. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter spacebug y-axis translation: ";
-			cin >> sbty;
-			if (sbty < 240 && sbty > -300) {
-				break;
-			}
-			else {
-				cout << "Please enter a value between -300 and 240. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter text x-axis translation: ";
-			cin >> texttx;
-			if (texttx <= 220 && texttx >= -400) {
-				break;
-			}
-			else {
-				cout << "Please enter a value between -400 and 220. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter text y-axis translation: ";
-			cin >> textty;
-			if (textty <= 285 && textty >= -300) {
-				break;
-			}
-			else {
-				cout << "Please enter a value between -300 and 285. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter asteroid x-axis scale: ";
-			cin >> atsx;
-			if (atsx < 44) {
-				break;
-			}
-			else {
-				cout << "Please enter a value less than 44. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter asteroid y-axis scale: ";
-			cin >> atsy;
-			if (atsy < 42) {
-				break;
-			}
-			else {
-				cout << "Please enter a value less than 42. ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter asteroid x-axis translation: ";
-			cin >> attx;
-			float posX = atsx * 9 + attx;
-			float negX = -(atsx * 9) + attx;
-			if (posX <= 400 && negX >= -400) {
-				break;
-			}
-			else {
-				float x = atsx * 9 - 400;
-				cout << "Please enter a value between " << -x << " and " << x << ". ";
-			}
-		}
-		while (true)
-		{
-			cout << "Enter asteroid y-axis translation: ";
-			cin >> atty;
-			float posY = atsy * 7 + atty;
-			float negY = -(atsy * 7) + atty;
-			if (posY <= 300 && negY >= -300) {
-				break;
-			}
-			else {
-				float y = atsy * 7 - 300;
-				cout << "Please enter a value between " << -y << " and " << y << ". ";
-			}
-		}
-
-		x = 0;
-	}
-	glutPostRedisplay();
-	glutTimerFunc(150, refresh, x+=1);
 }
 
 // Main function
@@ -474,8 +440,6 @@ void main(int argc, char** argv)
 
 	glutMouseFunc(mouseFcn);
 	glutKeyboardFunc(keyboard);
-	// Refreshes the display every 150ms
-	//glutTimerFunc(150, refresh, 1);
 
 	glutMainLoop();
 
