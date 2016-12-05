@@ -37,6 +37,9 @@ float plSize = 30.0f;
 const int stCnt = 150;
 int sbDir = 1.0f, plRotDif = 1.0f, textDirX = 1.0f, textDirY = 1.0f;
 int strArr[stCnt][2] = {};
+GLfloat aptx[10] = {};
+GLfloat apty[10] = {};
+GLfloat apRot[10] = {};
 
 void spinStars(void) {
 	Sleep(SLEEPMS);
@@ -48,8 +51,38 @@ void spinStars(void) {
 
 void moveBug(void);
 
+void destroyAsteriod(void) {
+	Sleep(SLEEPMS / 10);
+
+	bts = 0.0f;
+	atsx = 0.0f;
+	atsy = 0.0f;
+
+	for (int i = 0; i < 5; i++) {
+		aptx[i] += -(3.0f - (i / 3.0f));
+		apty[i] += (1.0f + (i / 3.0f));
+		apRot[i] += i + 0.5f;
+	}
+
+	for (int i = 5; i < 10; i++) {
+		aptx[i] += (1.0f - (i / 3.0f));
+		apty[i] += (3.0f - (i / 3.0f));
+		apRot[i] += i + 0.5f;
+	}
+
+	glutPostRedisplay();
+}
+
 void shoot(void) {
 	Sleep(SLEEPMS / 10);
+
+	if (btx <= attx + 4 && btx >= attx - 4 && bty > atty) {
+		for (int i = 0; i < 10; i++) {
+			aptx[i] = attx + i;
+			apty[i] = atty + i % 2;
+		}
+		glutIdleFunc(destroyAsteriod);
+	}
 
 	if (bty > HEIGHT / 2) {
 		bts = 0.0f;
@@ -57,6 +90,26 @@ void shoot(void) {
 	}
 
 	bty += 1.0f;
+	glutPostRedisplay();
+}
+
+void bugShootAsteroid(void) {
+	Sleep(SLEEPMS);
+
+	if (sbtx + 12 > attx) {
+		sbDir = -fmin(1.0f, sbtx - attx);
+	}
+	else if (sbtx + 12 < attx) {
+		sbDir = fmin(1.0f, attx - (sbtx + 12));
+	}
+	else {
+		bty = sbty + 54;
+		btx = sbtx + 12;
+		bts = 1.0f;
+		glutIdleFunc(shoot);
+	}
+
+	sbtx += sbDir;
 	glutPostRedisplay();
 }
 
@@ -184,15 +237,11 @@ void mouseFcn(GLint button, GLint action, GLint x, GLint y)
 	switch (button) {
 	case GLUT_LEFT_BUTTON:           //  Start the animation.
 		if (action == GLUT_DOWN)
-			glutIdleFunc(shootAsteroid);
-		break;
-	case GLUT_MIDDLE_BUTTON:
-		if (action == GLUT_DOWN)
-			glutIdleFunc(spinStars);
+			glutIdleFunc(NULL);
 		break;
 	case GLUT_RIGHT_BUTTON:            //  Stop the animation.
 		if (action == GLUT_DOWN)
-			glutIdleFunc(bounceText);
+			glutIdleFunc(shootAsteroid);
 		break;
 	default:
 		break;
@@ -206,10 +255,26 @@ void keyboard(unsigned char key, int x, int y)
 	case '0':	/*  0 key starts planet wobble */
 		glutIdleFunc(wobblePlanet);
 		break;
-	case '1':   /*  1 key starts the animation  */
+	case '1': /*  1 key starts moving space bug  */
+		sbDir = 1.0f;
 		glutIdleFunc(moveBug);
 		break;
-	case '2': /*  2 key stops the animation  */
+	case '2': /*  2 key starts spinning the stars */
+		glutIdleFunc(spinStars);
+		break;
+	case '3': /*  3 key starts bouncing text*/
+		glutIdleFunc(bounceText);
+		break;
+	case '4': /*  4 key makes bug shoot asteriod*/
+		glutIdleFunc(bugShootAsteroid);
+		break;
+	case '5': /**/
+		glutIdleFunc(NULL);
+		break;
+	case '6': /**/
+		glutIdleFunc(NULL);
+		break;
+	case '7': /**/
 		glutIdleFunc(NULL);
 		break;
 	default:
@@ -370,34 +435,50 @@ void displayFcn()
 	regHex = glGenLists(1);
 	glNewList(regHex, GL_COMPILE);
 	glBegin(GL_POLYGON);
-		glVertex2i(7,3);
-		glVertex2i(7,4);
-		glVertex2i(8,5);
-		glVertex2i(6,6);
-		glVertex2i(6,7);
-		glVertex2i(4,5);
-		glVertex2i(2,7);
-		glVertex2i(0,5);
-		glVertex2i(2,5);
-		glVertex2i(0,3);
-		glVertex2i(1,1);
-		glVertex2i(2,3);
-		glVertex2i(3,3);
-		glVertex2i(2,1);
+		glVertex2i(3,-1);
 		glVertex2i(3,0);
 		glVertex2i(4,1);
-		glVertex2i(4,2);
-		glVertex2i(6,2);
-		glVertex2i(4,0);
-		glVertex2i(6,0);
-		glVertex2i(7,1);
-		glVertex2i(8,1);
-		glVertex2i(8,2);
-		glVertex2i(9,3);
+		glVertex2i(2,2);
+		glVertex2i(2,3);
+		glVertex2i(0,1);
+		glVertex2i(-2,3);
+		glVertex2i(-4,1);
+		glVertex2i(-2,1);
+		glVertex2i(-4,-1);
+		glVertex2i(-3,-3);
+		glVertex2i(-2,-1);
+		glVertex2i(-1,-1);
+		glVertex2i(-2,-3);
+		glVertex2i(-1,-4);
+		glVertex2i(0,-3);
+		glVertex2i(0,-2);
+		glVertex2i(2,-2);
+		glVertex2i(0,-4);
+		glVertex2i(2,-4);
+		glVertex2i(3,-3);
+		glVertex2i(4,-3);
+		glVertex2i(4,-2);
+		glVertex2i(5,-1);
 	glEnd();
 	glEndList();
 	glCallList(regHex);
 	glPopMatrix();
+
+	//Draw Asteroid pieces
+	for (int i = 0; i < 10; i++) {
+		glPushMatrix();
+		glTranslatef(aptx[i], apty[i], 0.0f);
+		glScalef(atsx, atsy, 1.0f);
+		glRotatef(apRot[i], 0, 0, 1);
+		glBegin(GL_TRIANGLES);
+			glVertex2i(0, 0);
+			glVertex2i(2, 0);
+			glVertex2i(1, 2);
+		glEnd();
+		glPopMatrix();
+	}
+
+
 
 	// Bullet
 	glColor3f(0.0, 1.0, 0.0);
